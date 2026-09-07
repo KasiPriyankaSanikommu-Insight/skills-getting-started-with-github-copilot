@@ -4,6 +4,30 @@ document.addEventListener("DOMContentLoaded", () => {
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
 
+  async function unregisterParticipant(activity, participant) {
+    try {
+      const response = await fetch(
+        `/activities/${encodeURIComponent(activity)}/participants?email=${encodeURIComponent(participant)}`,
+        { method: "DELETE" }
+      );
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.detail || "Unable to unregister participant");
+      }
+
+      messageDiv.textContent = result.message;
+      messageDiv.className = "success";
+      messageDiv.classList.remove("hidden");
+      fetchActivities();
+    } catch (error) {
+      messageDiv.textContent = error.message || "Failed to unregister participant.";
+      messageDiv.className = "error";
+      messageDiv.classList.remove("hidden");
+      console.error("Error unregistering participant:", error);
+    }
+  }
+
   // Function to fetch activities from API
   async function fetchActivities() {
     try {
@@ -12,6 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Clear loading message
       activitiesList.innerHTML = "";
+      activitySelect.length = 1;
 
       // Populate activities list
       Object.entries(activities).forEach(([name, details]) => {
@@ -25,9 +50,28 @@ document.addEventListener("DOMContentLoaded", () => {
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          <div class="participants-section">
+            <strong>Participants</strong>
+            <ul class="participants-list">
+              ${details.participants.map((participant) => `
+                <li>
+                  <span>${participant}</span>
+                  <button class="remove-participant" type="button" aria-label="Unregister ${participant}" title="Unregister participant">
+                    &#128465;
+                  </button>
+                </li>
+              `).join("")}
+            </ul>
+          </div>
         `;
 
         activitiesList.appendChild(activityCard);
+
+        activityCard.querySelectorAll(".remove-participant").forEach((button, index) => {
+          button.addEventListener("click", () => {
+            unregisterParticipant(name, details.participants[index]);
+          });
+        });
 
         // Add option to select dropdown
         const option = document.createElement("option");
@@ -62,6 +106,7 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
