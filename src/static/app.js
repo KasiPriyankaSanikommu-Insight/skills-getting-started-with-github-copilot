@@ -4,6 +4,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
 
+  function escapeHTML(value) {
+    const element = document.createElement("span");
+    element.textContent = value;
+    return element.innerHTML;
+  }
+
   async function unregisterParticipant(activity, participant) {
     try {
       const response = await fetch(
@@ -31,7 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Function to fetch activities from API
   async function fetchActivities() {
     try {
-      const response = await fetch("/activities", { cache: "no-store" });
+      const response = await fetch("/activities");
       const activities = await response.json();
 
       // Clear loading message
@@ -53,14 +59,17 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="participants-section">
             <strong>Participants</strong>
             <ul class="participants-list">
-              ${details.participants.map((participant) => `
+              ${details.participants.map((participant) => {
+                const escapedParticipant = escapeHTML(participant);
+                return `
                 <li>
-                  <span>${participant}</span>
-                  <button class="remove-participant" type="button" aria-label="Unregister ${participant}" title="Unregister participant">
+                  <span>${escapedParticipant}</span>
+                  <button class="remove-participant" type="button" aria-label="Unregister ${escapedParticipant}" title="Unregister participant">
                     &#128465;
                   </button>
                 </li>
-              `).join("")}
+              `;
+              }).join("")}
             </ul>
           </div>
         `;
@@ -106,7 +115,7 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
-        await fetchActivities();
+        fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
